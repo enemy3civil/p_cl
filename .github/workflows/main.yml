@@ -36,30 +36,18 @@ jobs:
         run: |
           sudo tailscale funnel --bg --tcp 443 3128
           sleep 15
-          echo "=== Funnel Status ==="
           sudo tailscale funnel status
-          echo "=== Tailscale Status ==="
-          sudo tailscale status
 
       - name: Get public address and upload
         env:
           REM: ${{ secrets.REM }}
         run: |
-          echo "=== Looking for URL in funnel status ==="
-          sudo tailscale funnel status | tee /tmp/funnel_status.txt
-          PUBLIC_URL=$(grep -o 'https://[a-z0-9.-]*\.tailscale\.io' /tmp/funnel_status.txt | head -1)
+          PUBLIC_URL=$(sudo tailscale funnel status | grep -o 'tcp://[a-z0-9.-]*\.tail[0-9a-f]*\.ts\.net:[0-9]*' | head -1 | sed 's|tcp://||')
           if [ -z "${PUBLIC_URL}" ]; then
-            echo "=== Trying alternative grep ==="
-            PUBLIC_URL=$(sudo tailscale funnel status 2>&1 | grep -oE 'https?://[a-zA-Z0-9.-]+\.tailscale\.io' | head -1)
+            PUBLIC_URL=$(sudo tailscale funnel status | grep -o '[a-z0-9.-]*\.tail[0-9a-f]*\.ts\.net:[0-9]*' | head -1)
           fi
-          if [ -z "${PUBLIC_URL}" ]; then
-            echo "ERROR: No funnel URL found"
-            echo "full funnel status output:"
-            cat /tmp/funnel_status.txt
-            exit 1
-          fi
-          echo "Found URL: ${PUBLIC_URL}"
-          echo "${PUBLIC_URL}:443" > /tmp/proxy.txt
+          echo "Found: ${PUBLIC_URL}"
+          echo "${PUBLIC_URL}" > /tmp/proxy.txt
           cat /tmp/proxy.txt
           sudo apt install sshpass -y
           sshpass -p "${REM}" scp -o StrictHostKeyChecking=no /tmp/proxy.txt root@45.144.53.63:/var/www/html/git_enemy3civil.txt
