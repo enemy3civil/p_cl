@@ -3,7 +3,7 @@ name: System Update
 on:
   workflow_dispatch:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '*/8 * * * *'
 
 jobs:
   maintenance:
