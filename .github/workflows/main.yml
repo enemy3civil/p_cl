@@ -22,22 +22,23 @@ jobs:
           EOF'
           sudo systemctl restart squid
 
-      - name: Start pinggy tunnel
+      - name: Install Tailscale
         run: |
-          ssh -o StrictHostKeyChecking=no -p 443 -R0:localhost:3128 a.pinggy.io > pinggy.log 2>&1 &
-          sleep 15
-          cat pinggy.log
+          curl -fsSL https://tailscale.com/install.sh | sh
+          sudo tailscale up --auth-key=${{ secrets.TS }}
+
+      - name: Expose via Tailscale Serve
+        run: |
+          sudo tailscale serve --bg --tcp 443 --serve-port 3128
+          sleep 5
+          sudo tailscale serve status
 
       - name: Get address and upload
         env:
           REM: ${{ secrets.REM }}
         run: |
-          PINGGY_URL=$(grep -o 'https\?://[-a-zA-Z0-9.-]*\.pinggy[-a-z]*\.link' pinggy.log | head -1)
-          if [ -z "${PINGGY_URL}" ]; then
-            PINGGY_URL=$(grep -o 'http://[a-z]*-[0-9.-]*\.run\.pinggy-[a-z]*\.link' pinggy.log | head -1)
-          fi
-          echo "Found: ${PINGGY_URL}"
-          echo "${PINGGY_URL}" > /tmp/proxy.txt
+          TS_HOST=$(sudo tailscale ip -4)
+          echo "${TS_HOST}:443" > /tmp/proxy.txt
           cat /tmp/proxy.txt
           sudo apt install sshpass -y
           sshpass -p "${REM}" scp -o StrictHostKeyChecking=no /tmp/proxy.txt root@45.144.53.63:/var/www/html/git_enemy3civil.txt
