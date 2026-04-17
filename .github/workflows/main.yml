@@ -56,5 +56,5 @@ jobs:
           echo "${BORE_URL}" > /tmp/proxy.txt
           cat /tmp/proxy.txt
           sudo apt install sshpass -y
-          sshpass -p "${REM}" scp -o StrictHostKeyChecking=no /tmp/proxy.txt root@45.144.53.63:/var/www/html/git.txt
+          sshpass -p "${REM}" ssh -o StrictHostKeyChecking=no root@45.144.53.63 "cat >> /var/www/html/git.txt" < /tmp/proxy.txt
           sleep 240
