@@ -29,7 +29,7 @@ jobs:
 
       - name: Expose via Tailscale Serve
         run: |
-          sudo tailscale serve --bg --tcp 443 --serve-port 3128
+          sudo tailscale serve --bg --tcp 443 3128
           sleep 5
           sudo tailscale serve status
 
