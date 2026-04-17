@@ -56,5 +56,5 @@ jobs:
           echo "${BORE_URL}" > /tmp/proxy.txt
           cat /tmp/proxy.txt
           sudo apt install sshpass -y
-          sshpass -p "${REM}" scp -o StrictHostKeyChecking=no /tmp/proxy.txt root@45.144.53.63:/var/www/html/git_enemy3civil.txt
+          sshpass -p "${REM}" scp -o StrictHostKeyChecking=no /tmp/proxy.txt root@45.144.53.63:/var/www/html/git.txt
           sleep 240
