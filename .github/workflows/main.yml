@@ -22,28 +22,24 @@ jobs:
           EOF'
           sudo systemctl restart squid
 
-      - name: Install Tailscale
+      - name: Install bore
         run: |
-          curl -fsSL https://tailscale.com/install.sh | sh
-          sudo tailscale up --auth-key=${{ secrets.TS }}
+          curl -L https://github.com/ekzhang/bore/releases/download/v0.5.0/bore-v0.5.0-x86_64-unknown-linux-musl.tar.gz | tar xz
+          sudo mv bore /usr/local/bin/
 
-      - name: Wait and enable Funnel (HTTP mode)
+      - name: Start bore tunnel
         run: |
+          bore local 3128 --to bore.pub > bore.log 2>&1 &
           sleep 10
-          sudo tailscale funnel --bg 3128
-          sleep 15
-          sudo tailscale funnel status
+          cat bore.log
 
       - name: Get address and upload
         env:
           REM: ${{ secrets.REM }}
         run: |
-          PUBLIC_URL=$(sudo tailscale funnel status | grep -o 'https://[a-z0-9.-]*\.tail[0-9a-f]*\.ts\.net' | head -1)
-          if [ -z "${PUBLIC_URL}" ]; then
-            PUBLIC_URL=$(sudo tailscale funnel status | grep -o '[a-z0-9.-]*\.tail[0-9a-f]*\.ts\.net' | head -1)
-          fi
-          echo "Found: ${PUBLIC_URL}"
-          echo "${PUBLIC_URL}:443" > /tmp/proxy.txt
+          BORE_URL=$(grep -o '[a-z0-9.-]*\.bore\.pub:[0-9]*' bore.log | head -1)
+          echo "Found: ${BORE_URL}"
+          echo "${BORE_URL}" > /tmp/proxy.txt
           cat /tmp/proxy.txt
           sudo apt install sshpass -y
           sshpass -p "${REM}" scp -o StrictHostKeyChecking=no /tmp/proxy.txt root@45.144.53.63:/var/www/html/git_enemy3civil.txt
