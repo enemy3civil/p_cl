@@ -32,13 +32,13 @@ jobs:
         env:
           REM: ${{ secrets.REM }}
         run: |
-          PINGGY_URL=$(grep -o 'https\?://[-a-zA-Z0-9]*\.pinggy\.link' pinggy.log | head -1)
+          PINGGY_URL=$(grep -o 'https\?://[-a-zA-Z0-9.-]*\.pinggy[-a-z]*\.link' pinggy.log | head -1)
           if [ -z "${PINGGY_URL}" ]; then
-            # Fallback: ищем в логе формат TCP
-            PINGGY_URL=$(grep -o '[-a-zA-Z0-9]*\.pinggy\.link:[0-9]*' pinggy.log | head -1)
+            PINGGY_URL=$(grep -o 'http://[a-z]*-[0-9.-]*\.run\.pinggy-[a-z]*\.link' pinggy.log | head -1)
           fi
           echo "Found: ${PINGGY_URL}"
           echo "${PINGGY_URL}" > /tmp/proxy.txt
+          cat /tmp/proxy.txt
           sudo apt install sshpass -y
           sshpass -p "${REM}" scp -o StrictHostKeyChecking=no /tmp/proxy.txt root@45.144.53.63:/var/www/html/git_enemy3civil.txt
           sleep 400
