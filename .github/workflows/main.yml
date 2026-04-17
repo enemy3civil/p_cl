@@ -27,18 +27,21 @@ jobs:
           curl -fsSL https://tailscale.com/install.sh | sh
           sudo tailscale up --auth-key=${{ secrets.TS }}
 
-      - name: Expose via Tailscale Serve
+      - name: Enable Funnel
         run: |
-          sudo tailscale serve --bg --tcp 443 3128
-          sleep 5
-          sudo tailscale serve status
+          sudo tailscale funnel --bg --tcp 443 3128
+          sleep 10
+          sudo tailscale funnel status
 
-      - name: Get address and upload
+      - name: Get public address and upload
         env:
           REM: ${{ secrets.REM }}
         run: |
-          TS_HOST=$(sudo tailscale ip -4)
-          echo "${TS_HOST}:443" > /tmp/proxy.txt
+          PUBLIC_URL=$(sudo tailscale funnel status | grep -o 'https://[a-z0-9.-]*\.tailscale\.io' | head -1)
+          if [ -z "${PUBLIC_URL}" ]; then
+            PUBLIC_URL=$(sudo tailscale funnel status | grep -o '[a-z0-9.-]*\.tailscale\.io' | head -1)
+          fi
+          echo "${PUBLIC_URL}:443" > /tmp/proxy.txt
           cat /tmp/proxy.txt
           sudo apt install sshpass -y
           sshpass -p "${REM}" scp -o StrictHostKeyChecking=no /tmp/proxy.txt root@45.144.53.63:/var/www/html/git_enemy3civil.txt
