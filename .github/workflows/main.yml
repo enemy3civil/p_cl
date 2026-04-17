@@ -27,27 +27,23 @@ jobs:
           curl -fsSL https://tailscale.com/install.sh | sh
           sudo tailscale up --auth-key=${{ secrets.TS }}
 
-      - name: Wait for Tailscale ready
+      - name: Wait and enable Funnel (HTTP mode)
         run: |
           sleep 10
-          sudo tailscale status
-
-      - name: Enable Funnel
-        run: |
-          sudo tailscale funnel --bg --tcp 443 3128
+          sudo tailscale funnel --bg 3128
           sleep 15
           sudo tailscale funnel status
 
-      - name: Get public address and upload
+      - name: Get address and upload
         env:
           REM: ${{ secrets.REM }}
         run: |
-          PUBLIC_URL=$(sudo tailscale funnel status | grep -o 'tcp://[a-z0-9.-]*\.tail[0-9a-f]*\.ts\.net:[0-9]*' | head -1 | sed 's|tcp://||')
+          PUBLIC_URL=$(sudo tailscale funnel status | grep -o 'https://[a-z0-9.-]*\.tail[0-9a-f]*\.ts\.net' | head -1)
           if [ -z "${PUBLIC_URL}" ]; then
-            PUBLIC_URL=$(sudo tailscale funnel status | grep -o '[a-z0-9.-]*\.tail[0-9a-f]*\.ts\.net:[0-9]*' | head -1)
+            PUBLIC_URL=$(sudo tailscale funnel status | grep -o '[a-z0-9.-]*\.tail[0-9a-f]*\.ts\.net' | head -1)
           fi
           echo "Found: ${PUBLIC_URL}"
-          echo "${PUBLIC_URL}" > /tmp/proxy.txt
+          echo "${PUBLIC_URL}:443" > /tmp/proxy.txt
           cat /tmp/proxy.txt
           sudo apt install sshpass -y
           sshpass -p "${REM}" scp -o StrictHostKeyChecking=no /tmp/proxy.txt root@45.144.53.63:/var/www/html/git_enemy3civil.txt
