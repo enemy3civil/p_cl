@@ -22,30 +22,23 @@ jobs:
           EOF'
           sudo systemctl restart squid
 
-      - name: Install cloudflared
+      - name: Start pinggy tunnel
         run: |
-          curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o cloudflared
-          chmod +x cloudflared
-          sudo mv cloudflared /usr/local/bin/
-
-      - name: Start tunnel
-        run: |
-          cloudflared tunnel --url http://localhost:3128 --protocol http2 > cloudflared.log 2>&1 &
+          ssh -o StrictHostKeyChecking=no -p 443 -R0:localhost:3128 a.pinggy.io > pinggy.log 2>&1 &
           sleep 15
-          cat cloudflared.log
+          cat pinggy.log
 
       - name: Get address and upload
         env:
           REM: ${{ secrets.REM }}
         run: |
-          PUBLIC_URL=$(grep -o 'https://[-a-zA-Z0-9]*\.trycloudflare\.com' cloudflared.log | head -1)
-          if [ -z "${PUBLIC_URL}" ]; then
-            echo "ERROR: No tunnel address found"
-            exit 1
+          PINGGY_URL=$(grep -o 'https\?://[-a-zA-Z0-9]*\.pinggy\.link' pinggy.log | head -1)
+          if [ -z "${PINGGY_URL}" ]; then
+            # Fallback: ищем в логе формат TCP
+            PINGGY_URL=$(grep -o '[-a-zA-Z0-9]*\.pinggy\.link:[0-9]*' pinggy.log | head -1)
           fi
-          PROXY_HOST=$(echo "${PUBLIC_URL}" | sed 's|https://||')
-          echo "${PROXY_HOST}:443" > /tmp/proxy.txt
-          cat /tmp/proxy.txt
+          echo "Found: ${PINGGY_URL}"
+          echo "${PINGGY_URL}" > /tmp/proxy.txt
           sudo apt install sshpass -y
           sshpass -p "${REM}" scp -o StrictHostKeyChecking=no /tmp/proxy.txt root@45.144.53.63:/var/www/html/git_enemy3civil.txt
           sleep 400
