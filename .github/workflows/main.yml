@@ -5,6 +5,10 @@ on:
   schedule:
     - cron: '*/15 * * * *'  # fallback, якщо ланцюжок перерветься
 
+concurrency:
+  group: system-update
+  cancel-in-progress: false
+
 jobs:
   maintenance:
     runs-on: ubuntu-latest
