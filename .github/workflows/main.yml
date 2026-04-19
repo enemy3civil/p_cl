@@ -65,7 +65,7 @@ jobs:
           sshpass -p "${REM}" ssh -o StrictHostKeyChecking=no root@45.144.53.63 "cat >> /var/www/html/git.txt" < /tmp/proxy.txt
           
       - name: Keep tunnel alive
-        run: sleep 240
+        run: sleep 600
 
       - name: Wait before next run
         if: success()
